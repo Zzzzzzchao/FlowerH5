@@ -8,8 +8,7 @@
         v-model="selectedLabelDefault"
         :data="tabs"
         @click="clickHandler"
-        @change="changeHandler">
-      </cube-tab-bar>
+        @change="changeHandler" />
     </ul>
   </div>
 </template>
@@ -34,6 +33,29 @@ export default {
         icon: 'cubeic-person'
       }]
     }
+  },
+  created() {
+    setTimeout(() => {
+      let url = this.$route.name
+      console.log(url)
+      switch (url) {
+        case 'home':
+          this.selectedLabelDefault = '首页'
+        break
+        case 'goods':
+          this.selectedLabelDefault = '商品'
+        break
+        case 'shopCar':
+          this.selectedLabelDefault = '购物车'
+        break
+        case 'userCenter':
+        console.log('asd')
+          this.selectedLabelDefault = '我的'
+        break
+      }
+    }, 200)
+  },
+  mounted() {
   },
   methods: {
     clickHandler (label) {

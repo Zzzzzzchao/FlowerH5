@@ -6,65 +6,34 @@
     <div class="food" v-show="visible">
       <cube-scroll ref="scroll">
         <div class="food-content">
-          <div class="image-header">
-            <img :src="food.pic">
             <div class="back" @click="hide">
               <i class="icon-arrow_lift"></i>
             </div>
-          </div>
-          <div class="content">
-            <h1 class="title">{{food.name}}</h1>
-            <div class="detail">
-              <span class="sell-count">月售{{food.sellAmount}}份</span>
-            </div>
-            <div class="price">
-              <span class="now">￥{{food.price}}</span><span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
-            </div>
-            <div class="cart-control-wrapper">
-              <cart-control @add="addFood" :food="food"></cart-control>
-            </div>
-            <transition name="fade">
-              <div @click="addFirst" class="buy" v-show="!food.count">
-                加入购物车
-              </div>
-            </transition>
-          </div>
-          <split v-show="food.info"></split>
-          <div class="info" v-show="food.info">
-            <h1 class="title">商品信息</h1>
-            <p class="text">{{food.info}}</p>
-          </div>
-          <split></split>
-          <!-- <div class="rating">
-            <h1 class="title">商品评价</h1>
-            <rating-select
-              @select="onSelect"
-              @toggle="onToggle"
-              :selectType="selectType"
-              :onlyContent="onlyContent"
-              :desc="desc"
-              :ratings="ratings">
-            </rating-select>
-            <div class="rating-wrapper">
-              <ul v-show="computedRatings && computedRatings.length">
-                <li
-                  v-for="(rating,index) in computedRatings"
-                  class="rating-item border-bottom-1px"
-                  :key="index"
-                >
-                  <div class="user">
-                    <span class="name">{{rating.username}}</span>
-                    <img class="avatar" width="12" height="12" :src="rating.avatar">
+            <ul>
+              <li
+                v-for="food in resData"
+                :key="food.name"
+                class="food-item"
+              >
+                <div class="icon">
+                  <img width="57" height="57" :src="food.pic">
+                </div>
+                <div class="content">
+                  <h2 class="name">{{food.name}}</h2>
+                  <p class="desc">{{food.remark}}</p>
+                  <div class="extra">
+                    <span class="count">月售{{food.sellAmount}}份</span>
                   </div>
-                  <div class="time">{{format(rating.rateTime)}}</div>
-                  <p class="text">
-                    <span :class="{'icon-thumb_up':rating.rateType===0,'icon-thumb_down':rating.rateType===1}"></span>{{rating.text}}
-                  </p>
-                </li>
-              </ul>
-              <div class="no-rating" v-show="!computedRatings || !computedRatings.length">暂无评价</div>
-            </div>
-          </div> -->
+                  <div class="price">
+                    <span class="now">￥{{food.price}}</span>
+                    <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
+                  </div>
+                  <div class="cart-control-wrapper">
+                    <cart-control @add="addFood" :food="food"></cart-control>
+                  </div>
+                </div>
+              </li>
+            </ul>
         </div>
       </cube-scroll>
     </div>
@@ -72,7 +41,6 @@
 </template>
 
 <script type="text/ecmascript-6">
-  import moment from 'moment'
   import CartControl from 'components/cart-control/cart-control'
   import RatingSelect from 'components/rating-select/rating-select'
   import Split from 'components/split/split'
@@ -84,28 +52,39 @@
   const EVENT_LEAVE = 'leave'
 
   export default {
-    name: 'food',
+    name: 'searchList',
     mixins: [ratingMixin, popupMixin],
     props: {
-      food: {
-        type: Object
-      }
+      goods: '',
+      carData: ''
     },
     data() {
       return {
-        desc: {
-          all: '全部',
-          positive: '推荐',
-          negative: '吐槽'
-        }
+        resData: []
       }
     },
     computed: {
-      ratings() {
-        return this.food.ratings
-      }
     },
     created() {
+      console.log(this.carData)
+      // 提取搜索页面的商品
+      this.goods.forEach((two) => {
+        two.children.forEach((three) => {
+          three.children.forEach((food) => {
+            if (food) {
+              this.resData.push(food)
+            }
+          })
+        })
+      })
+      this.carData.forEach((car) => {
+        this.resData.forEach((goods) => {
+          if (car.goodsId === goods.goodsId) {
+            goods.count = car.count
+          }
+        })
+      })
+      console.log(this.resData)
       this.$on(EVENT_SHOW, () => {
         this.$nextTick(() => {
           this.$refs.scroll.refresh()
@@ -120,11 +99,18 @@
         this.$set(this.food, 'count', 1)
         this.$emit(EVENT_ADD, event.target)
       },
-      addFood(target) {
-        this.$emit(EVENT_ADD, target)
-      },
-      format(time) {
-        return moment(time).format('YYYY-MM-DD hh:mm')
+      addFood(target, food) {
+        var flg = false
+        this.carData.forEach((car) => {
+          if (car.goodsId === food.goodsId) {
+            flg = true
+            car.count = food.count
+          }
+        })
+        if (!flg) {
+          this.carData.push(food)
+        }
+        this.$emit(EVENT_ADD, target, this.carData)
       }
     },
     components: {
@@ -138,7 +124,52 @@
 <style lang="stylus" scoped>
   @import "~common/stylus/variable"
   @import "~common/stylus/mixin.styl"
-
+  .food-item
+      display: flex
+      margin: 18px
+      padding-bottom: 18px
+      position: relative
+      &:last-child
+        border-none()
+        margin-bottom: 0
+      .icon
+        flex: 0 0 57px
+        margin-right: 10px
+        img
+          height: auto
+      .content
+        flex: 1
+        .name
+          margin: 2px 0 8px 0
+          height: 14px
+          line-height: 14px
+          font-size: $fontsize-medium
+          color: $color-dark-grey
+        .desc, .extra
+          line-height: 10px
+          font-size: $fontsize-small-s
+          color: $color-light-grey
+        .desc
+          line-height: 12px
+          margin-bottom: 8px
+        .extra
+          .count
+            margin-right: 12px
+        .price
+          font-weight: 700
+          line-height: 24px
+          .now
+            margin-right: 8px
+            font-size: $fontsize-medium
+            color: $color-red
+          .old
+            text-decoration: line-through
+            font-size: $fontsize-small-s
+            color: $color-light-grey
+      .cart-control-wrapper
+        position: absolute
+        right: 0
+        bottom: 12px
   .food
     position: fixed
     left: 0

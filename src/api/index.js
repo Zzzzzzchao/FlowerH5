@@ -1,7 +1,7 @@
 import { get } from './helpers'
 
 const getSeller = get('api/seller')
-const getGoods = get('api/goods')
+const getGoods = get('mall/goods/tree')
 const getRatings = get('api/ratings')
 
 export {

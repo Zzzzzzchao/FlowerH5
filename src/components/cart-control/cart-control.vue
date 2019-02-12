@@ -27,9 +27,11 @@
         } else {
           this.food.count++
         }
-        this.$emit(EVENT_ADD, event.target)
+        console.log(this.food.count)
+        this.$emit(EVENT_ADD, event.target, this.food)
       },
       decrease() {
+        console.log('减')
         if (this.food.count) {
           this.food.count--
         }

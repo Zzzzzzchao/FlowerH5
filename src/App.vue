@@ -3,7 +3,7 @@
     <div class="page">
       <router-view></router-view>
     </div>
-    <ul class="footer">
+    <ul class="footer" v-if='selectedLabelDefault !== "商品"'>
        <cube-tab-bar
         v-model="selectedLabelDefault"
         :data="tabs"
@@ -37,7 +37,6 @@ export default {
   created() {
     setTimeout(() => {
       let url = this.$route.name
-      console.log(url)
       switch (url) {
         case 'home':
           this.selectedLabelDefault = '首页'
@@ -49,7 +48,6 @@ export default {
           this.selectedLabelDefault = '购物车'
         break
         case 'userCenter':
-        console.log('asd')
           this.selectedLabelDefault = '我的'
         break
       }
@@ -101,7 +99,6 @@ html,body{
   overflow-scrolling:touch;
 }
 .page{
-  height: 100%;
   padding-bottom: 50px;
 }
 .footer{

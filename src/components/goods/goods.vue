@@ -16,51 +16,57 @@
           >
             <template slot-scope="props">
               <div class="text">
-                <support-ico
+                <!-- 优惠信息 -->
+                <!-- <support-ico
                   v-if="props.txt.type>=1"
                   :size=3
                   :type="props.txt.type"
-                ></support-ico>
+                ></support-ico> -->
                 <span>{{props.txt.name}}</span>
-                <span class="num" v-if="props.txt.count">
+                <!-- 选中的数量 -->
+                <!-- <span class="num" v-if="props.txt.count">
                   <bubble :num="props.txt.count"></bubble>
-                </span>
+                </span> -->
               </div>
             </template>
           </cube-scroll-nav-bar>
         </template>
         <cube-scroll-nav-panel
           v-for="good in goods"
-          :key="good.name"
+          :key="good.id"
           :label="good.name"
           :title="good.name"
         >
-          <ul>
-            <li
-              @click="selectFood(food)"
-              v-for="food in good.foods"
-              :key="food.name"
-              class="food-item"
-            >
-              <div class="icon">
-                <img width="57" height="57" :src="food.icon">
-              </div>
-              <div class="content">
-                <h2 class="name">{{food.name}}</h2>
-                <p class="desc">{{food.description}}</p>
-                <div class="extra">
-                  <span class="count">月售{{food.sellCount}}份</span><span>好评率{{food.rating}}%</span>
+        <span @click="openSearch">asdasd</span>
+          <div v-for="two in good.children" :key="two.id">
+            <p class="smallTitle">{{two.name}}</p>
+            <ul>
+              <li
+                @click="selectFood(food)"
+                v-for="food in two.children"
+                :key="food.name"
+                class="food-item"
+              >
+                <div class="icon">
+                  <img width="57" height="57" :src="food.pic">
                 </div>
-                <div class="price">
-                  <span class="now">￥{{food.price}}</span>
-                  <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
+                <div class="content">
+                  <h2 class="name">{{food.name}}</h2>
+                  <p class="desc">{{food.remark}}</p>
+                  <div class="extra">
+                    <span class="count">月售{{food.sellAmount}}份</span>
+                  </div>
+                  <div class="price">
+                    <span class="now">￥{{food.price}}</span>
+                    <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
+                  </div>
+                  <div class="cart-control-wrapper">
+                    <cart-control @add="onAdd" :food="food"></cart-control>
+                  </div>
                 </div>
-                <div class="cart-control-wrapper">
-                  <cart-control @add="onAdd" :food="food"></cart-control>
-                </div>
-              </div>
-            </li>
-          </ul>
+              </li>
+            </ul>
+          </div>
         </cube-scroll-nav-panel>
       </cube-scroll-nav>
     </div>
@@ -81,6 +87,7 @@
   import Food from 'components/food/food'
   import SupportIco from 'components/support-ico/support-ico'
   import Bubble from 'components/bubble/bubble'
+  import SearchList from 'components/searchList/searchList'
 
   export default {
     name: 'goods',
@@ -108,11 +115,13 @@
       },
       selectFoods() {
         let foods = []
-        this.goods.forEach((good) => {
-          good.foods.forEach((food) => {
-            if (food.count) {
-              foods.push(food)
-            }
+        this.goods.forEach((two) => {
+          two.children.forEach((three) => {
+            three.children.forEach((food) => {
+              if (food.count) {
+                foods.push(food)
+              }
+            })
           })
         })
         return foods
@@ -120,13 +129,13 @@
       barTxts() {
         let ret = []
         this.goods.forEach((good) => {
-          const {type, name, foods} = good
+          const {id, name, children} = good
           let count = 0
-          foods.forEach((food) => {
+          children.forEach((food) => {
             count += food.count || 0
           })
           ret.push({
-            type,
+            id,
             name,
             count
           })
@@ -138,10 +147,8 @@
       fetch() {
         if (!this.fetched) {
           this.fetched = true
-          getGoods({
-            id: this.seller.id
-          }).then((goods) => {
-            this.goods = goods
+          getGoods().then((goods) => {
+            this.goods = goods.tree
           })
         }
       },
@@ -182,6 +189,46 @@
       },
       _hideShopCartSticky() {
         this.shopCartStickyComp.hide()
+      },
+      /*
+        打开搜索结果组件
+      */
+      openSearch () {
+        // 查询接口拿到数据
+        getGoods().then((goods) => {
+          this.searchFood = goods.tree
+          this._showSearchList()
+          this._showShopCartSticky()
+        })
+      },
+      _showSearchList() {
+        this.searchComp = this.searchComp || this.$createSearchList({
+          $props: {
+            goods: 'searchFood',
+            carData: 'selectFoods'
+          },
+          $events: {
+            add: (target, carData) => {
+              // 更新购物车信息
+              this.goods.forEach((two) => {
+                two.children.forEach((three) => {
+                  three.children.forEach((food) => {
+                    carData.forEach((car) => {
+                      if (car.goodsId === food.goodsId) {
+                        food.count = car.count
+                      }
+                    })
+                  })
+                })
+              })
+              this.shopCartStickyComp.drop(target, carData)
+            },
+            leave: () => {
+              this._hideShopCartSticky()
+            }
+          }
+        })
+        this.searchComp.show()
       }
     },
     components: {
@@ -189,7 +236,8 @@
       SupportIco,
       CartControl,
       ShopCart,
-      Food
+      Food,
+      SearchList
     }
   }
 </script>
@@ -294,4 +342,12 @@
       z-index: 50
       width: 100%
       height: 48px
+</style>
+
+<style lang="less" scoped>
+.smallTitle{
+  font-size: 12px;
+  padding-left: 5%;
+  line-height: 24px;
+}
 </style>
